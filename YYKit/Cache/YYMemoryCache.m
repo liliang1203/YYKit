@@ -15,19 +15,10 @@
 #import <QuartzCore/QuartzCore.h>
 #import <pthread.h>
 
-#if __has_include("YYDispatchQueuePool.h")
-#import "YYDispatchQueuePool.h"
-#endif
 
-#ifdef YYDispatchQueuePool_h
-static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue() {
-    return YYDispatchQueueGetForQOS(NSQualityOfServiceUtility);
-}
-#else
 static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue() {
     return dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
 }
-#endif
 
 /**
  A node in linked map.
@@ -411,8 +402,9 @@ static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue() {
         node->_time = CACurrentMediaTime();
         [_lru bringNodeToHead:node];
     }
+    id value = node ? node->_value : nil;
     pthread_mutex_unlock(&_lock);
-    return node ? node->_value : nil;
+    return value;
 }
 
 - (void)setObject:(id)object forKey:(id)key {
@@ -445,7 +437,7 @@ static inline dispatch_queue_t YYMemoryCacheGetReleaseQueue() {
     }
     if (_lru->_totalCost > _costLimit) {
         dispatch_async(_queue, ^{
-            [self trimToCost:_costLimit];
+            [self trimToCost:self.costLimit];
         });
     }
     if (_lru->_totalCount > _countLimit) {
